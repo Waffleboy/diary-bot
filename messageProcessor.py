@@ -9,9 +9,13 @@ import yagmail
 import os
 from datetime import date
 import logging
+import diarybot as db
+
+logger = db.setupLogger()
 
 # Main function
 def processMessage(incomingMessage,action):
+    logger.debug("Processing incoming message with action %s",action)
     successfulAction = False
     if action == "diaryLog":
         successfulAction = handleAction_DiaryLog(incomingMessage)
@@ -35,10 +39,15 @@ def handleAction_DiaryLog(incoming_message):
 #                           Yagmail Functions
 #==============================================================================
 def sendEmail(todaysDate,incoming_message):
+    logger.debug("Sending message: %s",incoming_message)
     incoming_message = removeCommand(incoming_message,"/log")
     yag = yagmail.SMTP(os.environ["MY_EMAIL_ADDRESS"], os.environ["MY_EMAIL_PASSWORD"])
     success = yag.send(os.environ["EMAIL_TO_SEND_TO"], todaysDate, incoming_message)
     success = True if success == {} else False
+    if success:
+        logger.info("Message successfully sent")
+    else:
+        logger.warn("Error with yagmail in sending message: %s",incoming_message)
     return success
 
 #==============================================================================

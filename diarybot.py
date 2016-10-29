@@ -7,14 +7,17 @@ Created on Sat Oct 29 15:24:24 2016
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import messageProcessor as mp
-import os
+import os,threading
 import logging
 
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
 
-logger = logging.getLogger(__name__)
+def setupLogger():
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        level=logging.INFO)
+    return logging.getLogger(__name__)
+    
+logger = setupLogger()
 
 
 #==============================================================================
@@ -25,6 +28,7 @@ logger = logging.getLogger(__name__)
 # update. Error handlers also receive the raised TelegramError object in error.
 
 def log(bot, update):
+    logger.info("Got a message from %s",update.message.from_user.username)
     if userNotAuthorised(update):
         update.message.reply_text("Sorry, You're not authorised to use this Bot.")
         return
@@ -55,8 +59,10 @@ def getHelpText():
 
 # #FIXME: Version 0.1
 def userNotAuthorised(update):
-    if (update.message.from_user.username.lower() != "waffleboy"):
+    username = (update.message.from_user.username).lower().strip().rstrip()
+    if (username == "waffleboy"):
         return False
+    logger.info("Unauthorised user: %s",username)
     return True
     
 #==============================================================================
@@ -67,7 +73,14 @@ def userNotAuthorised(update):
 def standardReply():
     s = "At the moment, I only reply to slash commands. Please try /help for more information!"
     return s
-    
+
+# Heroku bypass - not generally needed
+def listenToPort():
+    logger.info("Beginning Flask server to prevent shutdown by Heroku")
+    from flask import Flask
+    app = Flask(__name__)
+    app.run(debug=False,host = '0.0.0.0',port= int(os.environ.get('PORT', 33507)))
+        
     
 def main():
     # Create the EventHandler and pass it your bot's token.
@@ -97,5 +110,6 @@ def main():
 
 
 if __name__ == '__main__':
-    print("Starting Bot!")
+    logger.info("Starting Bot!")
+    threading.Thread(target=listenToPort).start()
     main()
