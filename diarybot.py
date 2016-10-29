@@ -30,7 +30,7 @@ logger = setupLogger()
 def log(bot, update):
     logger.info("Got a message from %s",update.message.from_user.username)
     if userNotAuthorised(update):
-        update.message.reply_text("Sorry, You're not authorised to use this Bot.")
+        update.message.reply_text("Sorry, You're not authorised to use me. Contact @waffleboy for help.")
         return
         
     messageToSave = update.message.text
