@@ -12,7 +12,9 @@ DiaryBot is a telegram bot that sends your text to an email with the current dat
  - MY_EMAIL_PASSWORD
  - EMAIL_TO_SEND_TO
  
-2) Simply run the bot, (Replace the userNotAuthorised() function with your own telegram handle) and use /log <whatever you wanna say here> and thats it.
+2) Replace the userNotAuthorised() function with your own telegram handle. Then, simply run the bot using python diarybot.py (alternatively, deploy to heroku)
+
+3) In telegram to the bot, /log <whatever you wanna say here> and thats it.
 
 ## Future Work
 This was a very quick script, so currently it only does the job of sending the text via email to the specified email address. 
