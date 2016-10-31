@@ -56,7 +56,7 @@ def sendEmail(todaysDate,incoming_message,user_object):
     for email in emailsToSendTo:
         try:
             yag = yagmail.SMTP(emailToSendFrom, appPassword)
-            success = yag.send(emailsToSendTo, todaysDate, incoming_message)
+            success = yag.send(email, todaysDate, incoming_message)
             if not (success == {}):
                 overallSuccess = False
         except Exception as e:
