@@ -32,7 +32,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     def __repr__(self):
-        return "<User(name='%s', telegram_id='%s' target_email='%s', email='%s' , times_used = '%s', last_used = '%s')>" % (
+        return "<User(name='%s', telegram_id='%s' target_emails='%s', email='%s' , times_used = '%s', last_used = '%s')>" % (
                          self.username, self.telegram_id, self.target_emails, 
                          self.email, self.times_used, self.last_used)
                          
@@ -92,7 +92,7 @@ def setLastUsed(user):
         user.last_used = datetime.datetime.now()
         session = generateSession()
         session.add(user)
-        session.flush()
+        commitAndCloseSession(session)
         return True
     except:
         logger.warn("Fail to set last used for user %s",user)
@@ -104,7 +104,7 @@ def addToTimesUsed(user):
         user.times_used += 1
         session = generateSession()
         session.add(user)
-        session.flush()
+        commitAndCloseSession(session)
         return True
     except:
         logger.warn("Fail to increase times used for user %s",user)

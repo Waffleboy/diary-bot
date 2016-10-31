@@ -70,6 +70,21 @@ def accountStatus(bot,update):
 def help(bot, update):
     update.message.reply_text(getHelpText())
 
+def deleteAccount(bot,update):
+    username = update.message.from_user.username
+    logger.info("Got a request to delete account by user %s",username)
+    update.message.reply_text("Processing...")
+    user = dbWrapper.getUserFromTelegramID(update.message.from_user.id)
+    if user:
+        result = dbWrapper.deleteUser(user)
+        if result:
+            logger.info("Successfully deleted user %s",username)
+            update.message.reply_text("Okay, I've deleted you from my records. I will miss you %s!",username)
+            return
+        update.message.reply_text("Could not delete you from my system - Contact @waffleboy for help")
+        return
+    update.message.reply_text("You're already not a registered user! Why not try signing up?" )
+    
 def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
     
@@ -89,8 +104,10 @@ Type '/register' to signup if you're a new user, else type /log <message here> t
 def getHelpText():
     s = """If you've not registered, use /register to register.
     
-Use /log <message> to send the email to the specified emails in your account
-    
+Use /log <message> to send the email to the specified emails in your account.
+
+Use /accountstatus to check details about your account.
+
 Use /deleteaccount to delete your account.
     
 For further help, contact @waffleboy
@@ -152,6 +169,7 @@ def main():
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("accountstatus", accountStatus))
+    dp.add_handler(CommandHandler("accountstatus", deleteAccount))
     
     #add conv handler
     conv_handler = ConversationHandler(
