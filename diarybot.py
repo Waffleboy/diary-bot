@@ -5,20 +5,20 @@ Created on Sat Oct 29 15:24:24 2016
 @author: waffleboy
 """
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters,ConversationHandler
 import messageProcessor as mp
 import os,threading
-import logging
+from flask import Flask
+import logger_settings
+import signupFlow
+import dbWrapper
+
+app = Flask(__name__)
+
+TARGET_EMAIL, MY_EMAIL, APP_KEY = range(3)
 
 # Enable logging
-
-def setupLogger():
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        level=logging.INFO)
-    return logging.getLogger(__name__)
-    
-logger = setupLogger()
-
+logger = logger_settings.setupLogger().getLogger(__name__)
 
 #==============================================================================
 #                               SLASH COMMANDS
@@ -28,17 +28,44 @@ logger = setupLogger()
 # update. Error handlers also receive the raised TelegramError object in error.
 
 def log(bot, update):
-    logger.info("Got a message from %s",update.message.from_user.username)
-    if userNotAuthorised(update):
-        update.message.reply_text("Sorry, You're not authorised to use me. Contact @waffleboy for help.")
+    username = update.message.from_user.username
+    telegram_id = update.message.from_user.id
+    update.message.reply_text("Processing..")
+    logger.info("Got a message from %s",username)
+    user = dbWrapper.getUserFromTelegramID(telegram_id)
+    
+    if not user:
+        update.message.reply_text("Hey %s, I'd love to help you but you're not registered! Type /register to register!",username)
         return
-        
     messageToSave = update.message.text
-    success = mp.processMessage(messageToSave,"diaryLog")
+    success = mp.processMessage(messageToSave,"diaryLog",user)
     if success:
-        update.message.reply_text("Message has been sent!")
+        update.message.reply_text("Message has been sent to your specified emails!")
         return
     update.message.reply_text("Unfortunately an error has occured - Contact @waffleboy")
+
+def accountStatus(bot,update):
+    logger.info("Received request for account status from user %s",update.message.from_user.username)
+    telegram_id = update.message.from_user.id
+    update.message.reply_text("Processing..")
+    user = dbWrapper.getUserFromTelegramID(telegram_id)
+    if user:
+        try:
+            username = user.username
+            username = str(username)
+            email = user.getMyEmail()
+            usage = str(user.times_used)
+            
+            targetEmails = stringify(user.getTargetEmails())
+            update.message.reply_text("Hey "+str(username) + 
+            ", your current email is "+str(email) +", recipient emails are: "+ targetEmails + " and you have used us "
+            + usage + " times.")
+        except Exception as e:
+            logger.warn("Error occured in account status - %s",update.message.from_user.username)
+            logger.exception(e)
+            update.message.reply_text("I'm sorry, an error occurred accessing the database. Contact @waffleboy for help")
+        return
+    update.message.reply_text("You are currently not a registered user. Type /register to sign up now!")
     
 def help(bot, update):
     update.message.reply_text(getHelpText())
@@ -47,17 +74,30 @@ def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
     
 def start(bot, update):
-    update.message.reply_text("Type /log <message here> to begin!")
+    update.message.reply_text("""
+    Welcome to DiaryBot!
+    
+DiaryBot helps you log messages to the emails specified by you, all from the convenience of telegram!
+    
+Type '/register' to signup if you're a new user, else type /log <message here> to begin!
+""")
 
 #==============================================================================
 #                               Helper Funcs
 #==============================================================================
 
 def getHelpText():
-    s = "Use '/log' to send an entry to email"
+    s = """If you've not registered, use /register to register.
+    
+Use /log <message> to send the email to the specified emails in your account
+    
+Use /deleteaccount to delete your account.
+    
+For further help, contact @waffleboy
+"""
     return s
 
-# #FIXME: Version 0.1
+# Version 0.1 - NOT USED.
 def userNotAuthorised(update):
     username = (update.message.from_user.username).lower().strip().rstrip()
     if (username == "waffleboy"):
@@ -66,7 +106,7 @@ def userNotAuthorised(update):
     return True
     
 #==============================================================================
-#                              Misc & Run
+#                                   Misc
 #==============================================================================
 
 # Standard reply upon texting the bot
@@ -75,16 +115,34 @@ def standardReply():
     return s
 
 # Heroku bypass - not generally needed
-def listenToPort():
+def listenToPort(app):
     logger.info("Beginning Flask server to prevent shutdown by Heroku")
-    from flask import Flask
-    app = Flask(__name__)
     app.run(debug=False,host = '0.0.0.0',port= int(os.environ.get('PORT', 33507)))
-        
+
+def isProductionEnvironment():
+    if os.environ.get('PRODUCTION'):
+        return True
+    return False
+    
+def getUpdater():
+    if isProductionEnvironment():
+        return Updater(os.environ.get("TELEGRAM_DIARYBOT_TOKEN"))
+    return Updater(os.environ.get("TELEGRAM_DIARYBOT_TEST_TOKEN"))
+
+def stringify(emails):
+    s = ''
+    for entry in emails:
+        s += entry +', '
+    s = s[:-2]
+    return s
+#==============================================================================
+#                                   Run
+#==============================================================================
     
 def main():
+    logger.info("Starting Bot!")
     # Create the EventHandler and pass it your bot's token.
-    updater = Updater(os.environ["TELEGRAM_DIARYBOT_TOKEN"])
+    updater = getUpdater()
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -93,6 +151,33 @@ def main():
     dp.add_handler(CommandHandler("log", log))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("accountstatus", accountStatus))
+    
+    #add conv handler
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('register', signupFlow.register)],
+
+        states={
+            TARGET_EMAIL: [MessageHandler(Filters.text,
+                                    signupFlow.target_email,
+                                    pass_user_data=True)
+                       ],
+
+            MY_EMAIL: [MessageHandler(Filters.text,
+                                           signupFlow.my_email,
+                                           pass_user_data=True),
+                            ],
+
+            APP_KEY: [MessageHandler(Filters.text,
+                                          signupFlow.one_time_password,
+                                          pass_user_data=True),
+                           ],
+        },
+
+        fallbacks=[CommandHandler('cancel', signupFlow.cancel,pass_user_data=True)]
+    )
+
+    dp.add_handler(conv_handler)
     
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, standardReply()))
@@ -110,6 +195,5 @@ def main():
 
 
 if __name__ == '__main__':
-    logger.info("Starting Bot!")
-    threading.Thread(target=listenToPort).start()
+    threading.Thread(target=listenToPort,args=(app,)).start()
     main()

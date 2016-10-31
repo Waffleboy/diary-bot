@@ -6,19 +6,22 @@ Created on Sat Oct 29 16:02:36 2016
 """
 
 import yagmail
-import os
 from datetime import date
-import logging
-import diarybot as db
+import logger_settings
+import dbWrapper
 
-logger = db.setupLogger()
+logger = logger_settings.setupLogger().getLogger(__name__)
 
 # Main function
-def processMessage(incomingMessage,action):
+def processMessage(incomingMessage,action,user_object):
     logger.debug("Processing incoming message with action %s",action)
+    lastUsed = dbWrapper.setLastUsed(user_object)
+    dbWrapper.addToTimesUsed(user_object)
+    if lastUsed:
+        logger.debug("Set last used for user %s",str(user_object))
     successfulAction = False
     if action == "diaryLog":
-        successfulAction = handleAction_DiaryLog(incomingMessage)
+        successfulAction = handleAction_DiaryLog(incomingMessage,user_object)
         
     # If more actions in the future
     return successfulAction
@@ -28,27 +31,40 @@ def processMessage(incomingMessage,action):
 #==============================================================================
 
 # Handle the "diaryLog" action
-def handleAction_DiaryLog(incoming_message):
+def handleAction_DiaryLog(incoming_message,user_object):
+    logger.info("Processing action 'diaryLog' for incoming message")
     successfulAction = False
     todaysDate = date.today()
     todaysDateStr = currentStrOfTimeFormat(todaysDate)
-    successfulAction = sendEmail(todaysDateStr,incoming_message)
+    incoming_message = removeCommand(incoming_message,"/log")
+    successfulAction = sendEmail(todaysDateStr,incoming_message,user_object)
+    if successfulAction:
+        logger.info("diaryLog Action successfully completed.")
+    else:
+        logger.warn("diaryLog Action failed to carry out.")
     return successfulAction
     
 #==============================================================================
 #                           Yagmail Functions
 #==============================================================================
-def sendEmail(todaysDate,incoming_message):
-    logger.debug("Sending message: %s",incoming_message)
-    incoming_message = removeCommand(incoming_message,"/log")
-    yag = yagmail.SMTP(os.environ["MY_EMAIL_ADDRESS"], os.environ["MY_EMAIL_PASSWORD"])
-    success = yag.send(os.environ["EMAIL_TO_SEND_TO"], todaysDate, incoming_message)
-    success = True if success == {} else False
-    if success:
-        logger.info("Message successfully sent")
-    else:
-        logger.warn("Error with yagmail in sending message: %s",incoming_message)
-    return success
+def sendEmail(todaysDate,incoming_message,user_object):
+    logger.info("Sending message: %s",incoming_message)
+    emailToSendFrom = user_object.getMyEmail()
+    appPassword = user_object.getMyAppPassword()
+    emailsToSendTo = user_object.getTargetEmails()
+    overallSuccess = True 
+    for email in emailsToSendTo:
+        try:
+            yag = yagmail.SMTP(emailToSendFrom, appPassword)
+            success = yag.send(emailsToSendTo, todaysDate, incoming_message)
+            if not (success == {}):
+                overallSuccess = False
+        except Exception as e:
+            overallSuccess = False
+            logger.warn("Error with yagmail in sending message: ErrorLog: %s, Message: %s",e,incoming_message)
+        if success:
+            logger.info("Message successfully sent")
+    return overallSuccess
 
 #==============================================================================
 #                              Misc Func
