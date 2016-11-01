@@ -9,7 +9,8 @@ DiaryBot is a telegram bot that sends your text to an email with the current dat
 Version 0.2 is now a full bot, able to serve any number of users, and hence relies on a database. If you're looking for the old version that serves just one user but easy to set up, check branch 'v1'.
 
 1) Fill in the following environment variables with your own:
- - TELEGRAM_DIARYBOT_TOKEN
+ - TELEGRAM_DIARYBOT_TOKEN (Telegram API key)
+ - PRODUCTION (set to any string)
  - DIARYBOT_DB (URL for postgres database)
  
 2) Simply run the bot using python diarybot.py (alternatively, deploy to heroku)
@@ -19,3 +20,4 @@ Version 0.2 is now a full bot, able to serve any number of users, and hence reli
 ## Future Work
 - Refactoring
 - Unit tests
+- Prevent suspension by heroku due to inactivity
