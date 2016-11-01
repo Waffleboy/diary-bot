@@ -13,16 +13,22 @@ import dbWrapper
 logger = logger_settings.setupLogger().getLogger(__name__)
 
 # Main function
-def processMessage(incomingMessage,action,user_object):
-    logger.debug("Processing incoming message with action %s",action)
-    lastUsed = dbWrapper.setLastUsed(user_object)
-    dbWrapper.addToTimesUsed(user_object)
-    if lastUsed:
-        logger.debug("Set last used for user %s",str(user_object))
-    successfulAction = False
+def processMessage(incomingMessage,action,user_object,update):
+    try:
+        logger.debug("Processing incoming message with action %s",action)
+        lastUsed = dbWrapper.setLastUsed(user_object.telegram_id)
+        dbWrapper.addToTimesUsed(user_object.telegram_id)
+        if lastUsed:
+            logger.debug("Set last used for user %s",str(user_object))
+        successfulAction = False
+    except Exception as e:
+        logger.warn("Error occurred while processing message! Probably a DB thing")
+        logger.exception(e)
+        update.message.reply_text("Sorry, something went wrong! Contact @waffleboy!")
+        
     if action == "diaryLog":
         successfulAction = handleAction_DiaryLog(incomingMessage,user_object)
-        
+    
     # If more actions in the future
     return successfulAction
     

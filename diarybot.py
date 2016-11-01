@@ -38,7 +38,7 @@ def log(bot, update):
         update.message.reply_text("Hey %s, I'd love to help you but you're not registered! Type /register to register!",username)
         return
     messageToSave = update.message.text
-    success = mp.processMessage(messageToSave,"diaryLog",user)
+    success = mp.processMessage(messageToSave,"diaryLog",user,update)
     if success:
         update.message.reply_text("Message has been sent to your specified emails!")
         return

@@ -86,11 +86,12 @@ def getUserFromTelegramID(telegram_id):
      session.close()
      return user
 
-def setLastUsed(user):
+def setLastUsed(telegram_id):
     try:
+        session = generateSession() #FIXME quick hack for bugfix
+        user = session.query(User).filter(User.telegram_id == telegram_id).first()
         logger.info("Setting last used for %s",user.username)
         user.last_used = datetime.datetime.now()
-        session = generateSession()
         session.add(user)
         commitAndCloseSession(session)
         return True
@@ -98,11 +99,12 @@ def setLastUsed(user):
         logger.warn("Fail to set last used for user %s",str(user))
     return False
     
-def addToTimesUsed(user):
+def addToTimesUsed(telegram_id):
     try:
+        session = generateSession() #FIXME quick hack for bugfix
+        user = session.query(User).filter(User.telegram_id == telegram_id).first()
         logger.info("Increasing times used for %s",user.username)
         user.times_used += 1
-        session = generateSession()
         session.add(user)
         commitAndCloseSession(session)
         return True
