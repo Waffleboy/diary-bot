@@ -15,6 +15,8 @@ import dbWrapper
 
 app = Flask(__name__)
 
+HEROKU = True #If deploying on heroku.
+
 TARGET_EMAIL, MY_EMAIL, APP_KEY = range(3)
 
 # Enable logging
@@ -213,5 +215,6 @@ def main():
 
 
 if __name__ == '__main__':
-    threading.Thread(target=listenToPort,args=(app,)).start()
+    if HEROKU:
+        threading.Thread(target=listenToPort,args=(app,)).start()
     main()
