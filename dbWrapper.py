@@ -95,7 +95,7 @@ def setLastUsed(user):
         commitAndCloseSession(session)
         return True
     except:
-        logger.warn("Fail to set last used for user %s",user)
+        logger.warn("Fail to set last used for user %s",str(user))
     return False
     
 def addToTimesUsed(user):
@@ -107,7 +107,25 @@ def addToTimesUsed(user):
         commitAndCloseSession(session)
         return True
     except:
-        logger.warn("Fail to increase times used for user %s",user)
+        logger.warn("Fail to increase times used for user %s",str(user))
+    return False
+
+def deleteUser(user):
+    try:
+        logger.info("Deleting User %s",str(user))
+        session = generateSession()
+        session.delete(user)
+        commitAndCloseSession(session)
+        return True
+    except Exception as e:
+        logger.warn("Error in deleting user %s",str(user))
+        logger.exception(e)
+    return False
+        
+def checkIfAlreadyRegistered(telegram_id):
+    user = getUserFromTelegramID(telegram_id)
+    if user:
+        return True
     return False
 #==============================================================================
 #                            Misc Helpers

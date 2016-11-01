@@ -19,8 +19,14 @@ logger = logger_settings.setupLogger().getLogger(__name__)
 #==============================================================================
 
 def register(bot, update):
-    logger.info("User %s with id %s began signup process",update.message.from_user.username,
-                                                            update.message.from_user.id)
+    username = update.message.from_user.username
+    telegram_id = update.message.from_user.id
+    logger.info("User %s with id %s began signup process",username,telegram_id)
+    
+    if dbWrapper.checkIfAlreadyRegistered(telegram_id):
+        update.message.reply_text("Hey %s, you're already registered! Type /accountsettings to see your stored information!")
+        return
+        
     update.message.reply_text("""
 Allright! Firstly, what is/are the email address(es) that you wish to send logs to?
     
