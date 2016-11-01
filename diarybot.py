@@ -13,8 +13,6 @@ import logger_settings
 import signupFlow
 import dbWrapper
 
-app = Flask(__name__)
-
 HEROKU = True #If deploying on heroku.
 
 TARGET_EMAIL, MY_EMAIL, APP_KEY = range(3)
@@ -134,7 +132,8 @@ def standardReply():
     return s
 
 # Heroku bypass - not generally needed
-def listenToPort(app):
+def listenToPort():
+    app = Flask(__name__)
     logger.info("Beginning Flask server to prevent shutdown by Heroku")
     app.run(debug=False,host = '0.0.0.0',port= int(os.environ.get('PORT', 33507)))
 
@@ -145,6 +144,7 @@ def isProductionEnvironment():
     
 def getUpdater():
     if isProductionEnvironment():
+        logger.info("Using Production key %s",os.environ.get("TELEGRAM_DIARYBOT_TOKEN"))
         return Updater(os.environ.get("TELEGRAM_DIARYBOT_TOKEN"))
     return Updater(os.environ.get("TELEGRAM_DIARYBOT_TEST_TOKEN"))
 
@@ -216,5 +216,5 @@ def main():
 
 if __name__ == '__main__':
     if HEROKU:
-        threading.Thread(target=listenToPort,args=(app,)).start()
+        threading.Thread(target=listenToPort).start()
     main()
