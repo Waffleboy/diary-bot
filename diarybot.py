@@ -169,7 +169,7 @@ def main():
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("accountstatus", accountStatus))
-    dp.add_handler(CommandHandler("accountstatus", deleteAccount))
+    dp.add_handler(CommandHandler("deleteaccount", deleteAccount))
     
     #add conv handler
     conv_handler = ConversationHandler(
