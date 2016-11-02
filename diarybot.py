@@ -137,6 +137,10 @@ def listenToPort():
     logger.info("Beginning Flask server to prevent shutdown by Heroku")
     app.run(debug=False,host = '0.0.0.0',port= int(os.environ.get('PORT', 33507)))
 
+@app.route('/')
+def standardPageOnHeroku():
+    return "DiaryBot is now awake!"
+    
 def isProductionEnvironment():
     if os.environ.get('PRODUCTION'):
         return True
