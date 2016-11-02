@@ -14,6 +14,7 @@ import signupFlow
 import dbWrapper
 
 HEROKU = True #If deploying on heroku.
+app = Flask(__name__)
 
 TARGET_EMAIL, MY_EMAIL, APP_KEY = range(3)
 
@@ -133,14 +134,14 @@ def standardReply():
 
 # Heroku bypass - not generally needed
 def listenToPort():
-    app = Flask(__name__)
+    global app
     logger.info("Beginning Flask server to prevent shutdown by Heroku")
     app.run(debug=False,host = '0.0.0.0',port= int(os.environ.get('PORT', 33507)))
 
 @app.route('/')
 def standardPageOnHeroku():
     return "DiaryBot is now awake!"
-    
+
 def isProductionEnvironment():
     if os.environ.get('PRODUCTION'):
         return True
